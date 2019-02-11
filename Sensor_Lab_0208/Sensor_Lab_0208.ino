@@ -13,15 +13,19 @@
 
 Servo servoMotor;  // create servo object to control a servo
 const int stepsPerRevolution = 400; //according to specifications of the stepper motor 
-Stepper stepperMotor(stepsPerRevolution, 7,6,5,4); //initialize stepper library on pins 7 to 4
+Stepper stepperMotor(stepsPerRevolution, 13,12,10,9); //initialize stepper library on the respective pins 
 
 // Digital Pin Assignments
 const int trigOutput = 2;
 const int echoInput = 3;
-const int servoMotorOutput = 9;
-const int dcMotorIn1 = 11;
-const int dcMotorIn2 = 12;
-
+const int servoMotorOutput = 11;
+const int dcMotorIn1 = 7;
+const int dcMotorIn2 = 6;
+const int dcMotorEn = 5;
+const int dcEncodeA = 50;
+const int dcEncodeB = 51;
+const int dcEncodeC = 52;
+const int dcEncodeD = 53;
 
 
 
@@ -89,7 +93,7 @@ void loop() {
   }
   else if ((sw1 == 1) && (sw2 == 0)) {
     readPotentiometerSensor();
-    delay(500);
+    
   }
   else {}
   
@@ -221,9 +225,9 @@ void readPotentiometerSensor(){
   }
 
 
-  int angleStepper = medianResis-currentStepperAngle; 
-  int steps = int(angleStepper/0.9) % stepsPerRevolution;
-  currentStepperAngle = medianResis;
+//  int angleStepper = medianResis-currentStepperAngle; 
+  int steps = int(medianResis/0.9) % stepsPerRevolution;
+//  currentStepperAngle = medianResis;
 //  
   //int steps = map(medianResis, 0, 20, 0, 180);
   //stepperMotor.setSpeed(potentiomneeterResult);
