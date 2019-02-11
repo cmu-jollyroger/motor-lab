@@ -9,14 +9,21 @@
 */
 
 #include <Servo.h>
+#include <Stepper.h>
 
 Servo servoMotor;  // create servo object to control a servo
-
+const int stepsPerRevolution = 400; //according to specifications of the stepper motor 
+Stepper stepperMotor(stepsPerRevolution, 7,6,5,4); //initialize stepper library on pins 7 to 4
 
 // Digital Pin Assignments
 const int trigOutput = 2;
 const int echoInput = 3;
 const int servoMotorOutput = 9;
+const int dcMotorIn1 = 11;
+const int dcMotorIn2 = 12;
+
+
+
 
 // Analog Pin Assignments
 const int sharpIRInput = 0;
@@ -25,6 +32,7 @@ const int sw1Input = A4;
 const int sw2Input = A5;
 
 const int windowSize = 20;
+int currentStepperAngle = 0; 
 
 float USS_result = 0;
 char last;
@@ -81,10 +89,11 @@ void loop() {
   }
   else if ((sw1 == 1) && (sw2 == 0)) {
     readPotentiometerSensor();
+    delay(500);
   }
   else {}
   
-  
+//  
 //  if (plotMode) {
 //      readUltraSoundSensor();
 //      readIRSensor();
@@ -202,6 +211,7 @@ void readPotentiometerSensor(){
   if (!plotMode) {
     Serial.println("Potentiometer Reading");
     Serial.print("Angle: ");
+//    Serial.print(analogRead(potentiometerOutput) *(5.0 / 1024.0));
     Serial.print(medianResis);
     Serial.println(" degrees");
     Serial.println("");
@@ -209,6 +219,19 @@ void readPotentiometerSensor(){
   else {
     Serial.println(medianResis);
   }
+
+
+  int angleStepper = medianResis-currentStepperAngle; 
+  int steps = int(angleStepper/0.9) % stepsPerRevolution;
+  currentStepperAngle = medianResis;
+//  
+  //int steps = map(medianResis, 0, 20, 0, 180);
+  //stepperMotor.setSpeed(potentiomneeterResult);
+
+  
+  stepperMotor.step(steps);
+  Serial.print("Stepper motor steps:");
+  Serial.println(steps);
 }
 
 
@@ -305,8 +328,8 @@ void modeSwitch(char input) {
     case 'd':
 //      int i = 0;
       while(1) {
-        readUltraSoundSensor();
-        readIRSensor();
+//        readUltraSoundSensor();
+//        readIRSensor();
         readPotentiometerSensor();  
         prettyPrintHelper();
         delay(500);
