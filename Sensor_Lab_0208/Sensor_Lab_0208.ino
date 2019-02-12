@@ -10,23 +10,23 @@
 
 #include <Servo.h>
 #include <Stepper.h>
+#include <Encoder.h>
 
 Servo servoMotor;  // create servo object to control a servo
 const int stepsPerRevolution = 400; //according to specifications of the stepper motor 
-Stepper stepperMotor(stepsPerRevolution, 13,12,10,9); //initialize stepper library on the respective pins 
+Stepper stepperMotor(stepsPerRevolution, 10,11,12,13); //initialize stepper library on the respective pins 
 
 // Digital Pin Assignments
 const int trigOutput = 2;
 const int echoInput = 3;
-const int servoMotorOutput = 11;
+const int servoMotorOutput = 8;
 const int dcMotorIn1 = 7;
 const int dcMotorIn2 = 6;
 const int dcMotorEn = 5;
-const int dcEncodeA = 50;
-const int dcEncodeB = 51;
-const int dcEncodeC = 52;
-const int dcEncodeD = 53;
+const int dcEncodeA = 25;
+const int dcEncodeB = 23;
 
+Encoder myEnc(25,23);
 
 
 // Analog Pin Assignments
@@ -36,7 +36,7 @@ const int sw1Input = A4;
 const int sw2Input = A5;
 
 const int windowSize = 20;
-int currentStepperAngle = 0; 
+float currentStepperAngle = 0; 
 
 float USS_result = 0;
 char last;
@@ -54,6 +54,8 @@ void setup() {
   pinMode(potentiometerOutput, OUTPUT);
   Serial.begin(9600);
   servoMotor.attach(servoMotorOutput);
+
+  stepperMotor.setSpeed(45);
   
   //Switch Pin Setup
   pinMode(sw1Input, INPUT);
@@ -85,17 +87,19 @@ void prettyPrintHelper(){
 
 void loop() {
   readSwitch(&sw1, &sw2);
-  if ((sw1 == 0) && (sw2 == 0)) {
-    readUltraSoundSensor();
-  } 
-  else if ((sw1 == 0) && (sw2 == 1)) {
-    readIRSensor();
-  }
-  else if ((sw1 == 1) && (sw2 == 0)) {
-    readPotentiometerSensor();
-    
-  }
-  else {}
+  Serial.print("Encoder Reading ");
+  Serial.print(myEnc.read());
+//  if ((sw1 == 0) && (sw2 == 0)) {
+//    readUltraSoundSensor();
+//  } 
+//  else if ((sw1 == 0) && (sw2 == 1)) {
+//    readIRSensor();
+//  }
+//  else if ((sw1 == 1) && (sw2 == 0)) {
+//    readPotentiometerSensor();
+//    
+//  }
+//  else {}
   
 //  
 //  if (plotMode) {
@@ -225,17 +229,14 @@ void readPotentiometerSensor(){
   }
 
 
-//  int angleStepper = medianResis-currentStepperAngle; 
-  int steps = int(medianResis/0.9) % stepsPerRevolution;
-//  currentStepperAngle = medianResis;
-//  
-  //int steps = map(medianResis, 0, 20, 0, 180);
-  //stepperMotor.setSpeed(potentiomneeterResult);
-
+  float angleStepper = medianResis-currentStepperAngle; 
+  int steps = int((angleStepper/0.9))  % stepsPerRevolution;
+  currentStepperAngle = medianResis;
   
   stepperMotor.step(steps);
   Serial.print("Stepper motor steps:");
   Serial.println(steps);
+  //delay(500);
 }
 
 
