@@ -18,7 +18,7 @@ void setup() {
 void loop() {
   digitalWrite(in1, HIGH);
   digitalWrite(in2, LOW);
-  analogWrite(pwm,60); 
+  analogWrite(pwm,150); 
   delay(20);
   Serial.print("Encoder Reading ");
   Serial.println(myEnc.read());

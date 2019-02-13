@@ -23,12 +23,12 @@ const int servoMotorOutput = 8;
 const int dcMotorIn1 = 7;
 const int dcMotorIn2 = 6;
 const int dcMotorEn = 5;
-//const int dcEncodeA = 25;
-//const int dcEncodeB = 23;
+const int dcEncodeA = 2;
+const int dcEncodeB = 3;
 int iterationCount = 0;
 
-Encoder myEnc(2,3);
 
+Encoder myEnc(dcEncodeA,dcEncodeB);
 
 // Analog Pin Assignments
 const int sharpIRInput = 0;
@@ -49,6 +49,43 @@ boolean sensorMode = true;
 
 int sw1 = 1;
 int sw2 = 1;
+
+// PID
+#define LOOPTIME        100                     // PID loop time
+#define NUMREADINGS     10                      // samples for Amp average
+
+int readings[NUMREADINGS];
+unsigned long lastMilli = 0;                    // loop timing 
+unsigned long lastMilliPrint = 0;               // loop timing
+int speed_req = 300;                            // speed (Set Point)
+int speed_act = 0;                              // speed (actual value)
+int PWM_val = 0;                                // (25% = 64; 50% = 127; 75% = 191; 100% = 255)
+int voltage = 0;                                // in mV
+int current = 0;                                // in mA
+volatile long count = 0;                        // rev counter
+float Kp =   .4;                                // PID proportional control Gain
+float Kd =    1;                                // PID Derivitave control gain
+
+/* PID CODE */
+void getMotorData()  {                                                        // calculate speed, volts and Amps
+static long countAnt = 0;                                                   // last count
+ int cnt_count = myEnc.read();
+ speed_act = ((cnt_count - countAnt)*(60*(1000/LOOPTIME)))/(16*29);          // 16 pulses X 29 gear ratio = 464 counts per output shaft rev
+ countAnt = cnt_count;                  
+}
+
+int updatePid(int command, int targetValue, int currentValue)   {             // compute PWM value
+float pidTerm = 0;                                                            // PID correction
+int error=0;                                  
+static int last_error=0;                             
+ error = abs(targetValue) - abs(currentValue); 
+ pidTerm = (Kp * error) + (Kd * (error - last_error));                            
+ last_error = error;
+ return constrain(command + int(pidTerm), 0, 255);
+}
+
+
+
 void setup() {
 
   //Pin Setup
