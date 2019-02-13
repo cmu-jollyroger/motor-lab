@@ -105,11 +105,19 @@ void setup() {
 }
 
 void outputAllValuesForUI(){
-  if (iterationCount == 100) {
+  int restriction = 300;
+  if (!sensorMode){
+    restriction = 1800;
+  }
+  if (iterationCount == restriction) {
     iterationCount = 0;
     onlyReadandPrintSensorValues();
     onlyReadandPrintMotorValues();
     iterationCount++;
+    Serial.println("Go111");
+  }
+  if (iterationCount == (restriction/3 * 2)){
+    Serial.println("NoGo");
   }
   iterationCount++;
 }
@@ -117,15 +125,21 @@ void outputAllValuesForUI(){
 void guiMode() { 
   while (Serial.available() > 0) {
     int inChar = Serial.read();
+    Serial.println("This is Commands ");
+      Serial.println(command);
+      Serial.println("Wnd of Command ");
     if (inChar != '\n') { 
       command += (char)inChar;
     }
     else {
-      Serial.print("This is Commands ");
-      Serial.print(command);
-      if (command.indexOf("Sensor Command:") != -1) {
-        String value = command.substring(command.lastIndexOf(':'));
+      Serial.println("This is Commands ");
+      Serial.println(command);
+      Serial.println("Wnd of Command ");
+      if (command.indexOf("SenC:") != -1) {
+        Serial.println("IN SEPR");
+        String value = command.substring(command.lastIndexOf(':') + 1);
         if (value.equals("false")){
+          Serial.println("Swap Sensor Mode");
           sensorMode = false;
         }
         else if (value.equals("true")){
@@ -133,20 +147,20 @@ void guiMode() {
         }
       }
       else if (sensorMode == false) {
-        if (command.indexOf("Stepper Command:") != -1) {
-          String value = command.substring(command.lastIndexOf(':'));
+        if (command.indexOf("SC:") != -1) {
+          String value = command.substring(command.lastIndexOf(':') + 1);
           updateStepper(value.toFloat());
         }
-        else if (command.indexOf("Servo Command:") != -1) {
-          String value = command.substring(command.lastIndexOf(':'));
+        else if (command.indexOf("SerC:") != -1) {
+          String value = command.substring(command.lastIndexOf(':') + 1);
           updateServo(value.toFloat());
         }
-        else if (command.indexOf("DCAngle Command:") != -1) {
-          String value = command.substring(command.lastIndexOf(':'));
+        else if (command.indexOf("DCAC:") != -1) {
+          String value = command.substring(command.lastIndexOf(':') + 1);
           updateDCAngle(value.toFloat());
         }
-        else if (command.indexOf("DCVelocity Command:") != -1) {
-          String value = command.substring(command.lastIndexOf(':'));
+        else if (command.indexOf("DCVC:") != -1) {
+          String value = command.substring(command.lastIndexOf(':') + 1);
           updateDCVel(value.toFloat());
         }
       }
@@ -359,6 +373,7 @@ void readIRSensor(){
     Serial.print(medianDis);
     Serial.print(",");
   }*/
+  
 }
 
 void readPotentiometerSensor(){
