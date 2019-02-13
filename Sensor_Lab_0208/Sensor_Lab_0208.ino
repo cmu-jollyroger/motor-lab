@@ -1,5 +1,5 @@
 /*
-* Carnegie Mellon Univeristy Mechatronics 2019: ShipBot Team A
+* Carnegie Mellon University Mechatronics 2019: ShipBot Team A
 * Sensor Lab
 * Authors: David Bang (@dbang)
 * Fiona Li (@siling1)
@@ -17,21 +17,22 @@ const int stepsPerRevolution = 400; //according to specifications of the stepper
 Stepper stepperMotor(stepsPerRevolution, 10,11,12,13); //initialize stepper library on the respective pins 
 
 // Digital Pin Assignments
-const int trigOutput = 2;
-const int echoInput = 3;
+const int trigOutput = 24;
+const int echoInput = 22;
 const int servoMotorOutput = 8;
 const int dcMotorIn1 = 7;
 const int dcMotorIn2 = 6;
 const int dcMotorEn = 5;
-const int dcEncodeA = 25;
-const int dcEncodeB = 23;
+//const int dcEncodeA = 25;
+//const int dcEncodeB = 23;
+int iterationCount = 0;
 
-Encoder myEnc(25,23);
+Encoder myEnc(2,3);
 
 
 // Analog Pin Assignments
 const int sharpIRInput = 0;
-const int potentiometerOutput = 1;
+const int potentiometerOutput = 7;
 const int sw1Input = A4;
 const int sw2Input = A5;
 
@@ -42,6 +43,9 @@ float USS_result = 0;
 char last;
 boolean plotMode = false;
 //boolean plotMode = true;
+
+String command = "";
+boolean sensorMode = true;
 
 int sw1 = 1;
 int sw2 = 1;
@@ -61,61 +65,111 @@ void setup() {
   pinMode(sw1Input, INPUT);
   pinMode(sw2Input, INPUT);
 
-  //Terminal Interface
-  Serial.println("CMU Mechatronics ShipBot Team A: Sensors Lab");
-  prettyPrintHelper();
-  printHowToUse();
 }
 
-void printHowToUse() {
- Serial.println("List of commands is specified below");
- Serial.println(" h: show help instructions again");
- Serial.println(" p: Return Angle of Potentiometer In Degrees");
- Serial.println(" i: Return Distance of IR Sensor In Inches");
- Serial.println(" u: Return Distance of UltraSound Sensor in Inchines");
- Serial.println(" d: Demos all 3 sensors continously 20 times");
- Serial.println("To continue send a character followed by a newline.");
- prettyPrintHelper();
+void outputAllValuesForUI(){
+  if (iterationCount == 100) {
+    iterationCount = 0;
+    onlyReadandPrintSensorValues();
+    onlyReadandPrintMotorValues();
+    iterationCount++;
+  }
+  iterationCount++;
 }
 
-void prettyPrintHelper(){
-  for (int i = 0; i < 100; i++) {
-    Serial.print("=");
+void guiMode() { 
+  while (Serial.available() > 0) {
+    int inChar = Serial.read();
+    if (inChar != '\n') { 
+      command += (char)inChar;
     }
-    Serial.println();
+    else {
+      Serial.print("This is Commands ");
+      Serial.print(command);
+      if (command.indexOf("Sensor Command:") != -1) {
+        String value = command.substring(command.lastIndexOf(':'));
+        if (value.equals("false")){
+          sensorMode = false;
+        }
+        else if (value.equals("true")){
+          sensorMode = true;
+        }
+      }
+      else if (sensorMode == false) {
+        if (command.indexOf("Stepper Command:") != -1) {
+          String value = command.substring(command.lastIndexOf(':'));
+          updateStepper(value.toFloat());
+        }
+        else if (command.indexOf("Servo Command:") != -1) {
+          String value = command.substring(command.lastIndexOf(':'));
+          updateServo(value.toFloat());
+        }
+        else if (command.indexOf("DCAngle Command:") != -1) {
+          String value = command.substring(command.lastIndexOf(':'));
+          updateDCAngle(value.toFloat());
+        }
+        else if (command.indexOf("DCVelocity Command:") != -1) {
+          String value = command.substring(command.lastIndexOf(':'));
+          updateDCVel(value.toFloat());
+        }
+      }
+      command = "";
+    }
+  }
+  
+}
+
+void updateStepper(float angle){
+  float angleStepper = angle-currentStepperAngle; 
+  int steps = int((angleStepper/0.9))  % stepsPerRevolution;
+  currentStepperAngle = angle;
+  
+  stepperMotor.step(steps);
+}
+
+void updateServo(float angle){
+  servoMotor.write(angle);
+}
+
+void updateDCAngle(float angle){
+
+}
+
+void updateDCVel(float vel){
 }
 
 void loop() {
-  readSwitch(&sw1, &sw2);
-  Serial.print("Encoder Reading ");
-  Serial.print(myEnc.read());
-//  if ((sw1 == 0) && (sw2 == 0)) {
-//    readUltraSoundSensor();
-//  } 
-//  else if ((sw1 == 0) && (sw2 == 1)) {
-//    readIRSensor();
-//  }
-//  else if ((sw1 == 1) && (sw2 == 0)) {
-//    readPotentiometerSensor();
-//    
-//  }
-//  else {}
+  outputAllValuesForUI();
+  guiMode();
+  if (sensorMode){
+    readSwitch(&sw1, &sw2);
+    if ((sw1 == 0) && (sw2 == 0)) {
+      readUltraSoundSensor();
+    } 
+    else if ((sw1 == 0) && (sw2 == 1)) {
+      readIRSensor();
+    }
+    else if ((sw1 == 1) && (sw2 == 0)) {
+      readPotentiometerSensor();
+    }
+    else {}
   
-//  
-//  if (plotMode) {
-//      readUltraSoundSensor();
-//      readIRSensor();
-//      readPotentiometerSensor();
-//  }
-//  else if (Serial.available()) {
-//    char readIn = Serial.read();
-//    if ((int) readIn == 10) {
-//      Serial.println("Input is");
-//      Serial.println(last);
-//      modeSwitch(last);
-//    }
-//    last = readIn;
-//  }
+  //  
+  //  if (plotMode) {
+  //      readUltraSoundSensor();
+  //      readIRSensor();
+  //      readPotentiometerSensor();
+  //  }
+  //  else if (Serial.available()) {
+  //    char readIn = Serial.read();
+  //    if ((int) readIn == 10) {
+  //      Serial.println("Input is");
+  //      Serial.println(last);
+  //      modeSwitch(last);
+  //    }
+  //    last = readIn;
+  //  }
+  }
 }
 
 void insertionSort(float* arr, int n){ 
@@ -136,6 +190,68 @@ void insertionSort(float* arr, int n){
 float findMedian(float* median, int size){
   insertionSort(median, windowSize);
   return median[windowSize/2 - 1];
+}
+
+void onlyReadandPrintSensorValues(){
+  //ultraSound
+  float medianFilter[windowSize];
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  for (int i = 0; i < windowSize; i++){
+    digitalWrite(trigOutput, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigOutput, LOW);
+    
+    // Reads the echoPin, returns the sound wave travel time in microseconds
+    float duration = pulseIn(echoInput, HIGH);
+    // Calculating the distance
+    float distance= duration*0.034/2;
+    // Prints the distance on the Serial Monitor
+    if (duration > 30000) {
+      // invalid reading
+      duration = USS_result;
+    } else {
+      USS_result = duration;
+    }
+    float cdis = 0.0067*duration+ 0.6603;
+    medianFilter[i] = cdis;
+  }
+  float ultraSound = findMedian(medianFilter, windowSize);
+
+  //IR
+  for (int i = 0; i < windowSize; i++){
+    float volts = analogRead(sharpIRInput) *(5.0 / 1024.0);
+    float Dis = 4.4627*volts*volts-19.378*volts+24.957;
+    medianFilter[i] = Dis;
+  }
+  float ir = findMedian(medianFilter, windowSize);
+
+  //Potentiometer
+  for (int i = 0; i < windowSize; i++){
+    float volts = analogRead(potentiometerOutput) *(5.0 / 1024.0);
+    float resis = (2.9263*volts*volts-22.403*volts+97.623)*volts;
+    medianFilter[i] = resis;
+  }
+  float potentiometer = findMedian(medianFilter, windowSize);
+
+  Serial.print("UltraSound:");
+  Serial.println(ultraSound);
+  Serial.print("IR:");
+  Serial.println(ir);
+  Serial.print("Potentiometer:");
+  Serial.println(potentiometer);  
+}
+
+void onlyReadandPrintMotorValues(){
+  int servoAngle = servoMotor.read();
+  int stepperAngle = currentStepperAngle;
+  int dcAngle = myEnc.read() * 2;
+
+  Serial.print("ServoAngle:");
+  Serial.println(servoAngle);
+  Serial.print("StepperAngle:");
+  Serial.println(stepperAngle);
+  Serial.print("DCAngle:");
+  Serial.println(dcAngle);
 }
 
 float readUltraSoundSensor(){
@@ -162,7 +278,7 @@ float readUltraSoundSensor(){
   }
   float medianDis = findMedian(medianFilter, windowSize);
   
-  if (!plotMode){
+  /*if (!plotMode){
     Serial.println("Ultrasound Reading"); 
     Serial.print("Distance: ");
     Serial.print(medianDis); 
@@ -172,10 +288,10 @@ float readUltraSoundSensor(){
   else {
     Serial.print(medianDis);
     Serial.print(",");
-  }
+  }*/
   if (medianDis > 20) {
-        Serial.println("Ultrasound Reading Distance Out Of Range.");
-        Serial.println(""); 
+        //Serial.println("Ultrasound Reading Distance Out Of Range.");
+        //Serial.println(""); 
   }
   else {
       float servoMotorMappedInput = map(medianDis, 0, 20, 0, 180);
@@ -194,7 +310,7 @@ void readIRSensor(){
     medianFilter[i] = Dis;
   }
   float medianDis = findMedian(medianFilter, windowSize);
-  if (!plotMode){
+  /*if (!plotMode){
     Serial.println("IR Reading"); 
 
     Serial.print("Distance: ");
@@ -205,7 +321,7 @@ void readIRSensor(){
   else {
     Serial.print(medianDis);
     Serial.print(",");
-  }
+  }*/
 }
 
 void readPotentiometerSensor(){
@@ -217,15 +333,15 @@ void readPotentiometerSensor(){
   }
   float medianResis = findMedian(medianFilter, windowSize);
   if (!plotMode) {
-    Serial.println("Potentiometer Reading");
-    Serial.print("Angle: ");
+    //Serial.println("Potentiometer Reading");
+    //Serial.print("Angle: ");
 //    Serial.print(analogRead(potentiometerOutput) *(5.0 / 1024.0));
-    Serial.print(medianResis);
-    Serial.println(" degrees");
-    Serial.println("");
+    //Serial.print(medianResis);
+    //Serial.println(" degrees");
+    //Serial.println("");
   }
   else {
-    Serial.println(medianResis);
+    //Serial.println(medianResis);
   }
 
 
@@ -234,8 +350,8 @@ void readPotentiometerSensor(){
   currentStepperAngle = medianResis;
   
   stepperMotor.step(steps);
-  Serial.print("Stepper motor steps:");
-  Serial.println(steps);
+ // Serial.print("Stepper motor steps:");
+  //Serial.println(steps);
   //delay(500);
 }
 
@@ -299,50 +415,9 @@ void readSwitch(int *sw1, int *sw2) {
 //  Serial.println(counter1);
 //  Serial.print("counter 2: ");
 //  Serial.println(counter2);
-  Serial.print("Switch 1: ");
-  Serial.println(*sw1);
-  Serial.print("Switch 2: ");
-  Serial.println(*sw2);
-  Serial.println("==========");
+  //Serial.print("Switch 1: ");
+  //Serial.println(*sw1);
+  //Serial.print("Switch 2: ");
+  //Serial.println(*sw2);
+  //Serial.println("==========");
   }
-
-void modeSwitch(char input) {
-  plotMode = false;
-  switch (input) {
-    case 'h':
-      printHowToUse();
-      break;
-    case 'p':
-      readPotentiometerSensor();  
-      prettyPrintHelper();
-      break;
-    case 'i':
-      readIRSensor();
-      prettyPrintHelper();
-      break;
-    case 'u':
-      readUltraSoundSensor();
-      prettyPrintHelper();
-      break;
-//    case 's':
-//      while(1){
-//        readSwitch(&sw1, &sw2);
-//        delay(50);
-//      }
-//      break;
-    case 'd':
-//      int i = 0;
-      while(1) {
-//        readUltraSoundSensor();
-//        readIRSensor();
-        readPotentiometerSensor();  
-        prettyPrintHelper();
-        delay(500);
-//        i++;
-      }
-      break;
-    default:
-      Serial.println("Invalid Input.");
-      prettyPrintHelper();
-  }
-}
