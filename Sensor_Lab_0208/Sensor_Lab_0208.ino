@@ -63,8 +63,8 @@ int PWM_val = 0;                                // (25% = 64; 50% = 127; 75% = 1
 int voltage = 0;                                // in mV
 int current = 0;                                // in mA
 volatile long count = 0;                        // rev counter
-float Kp =   .4;                                // PID proportional control Gain
-float Kd =    1;                                // PID Derivitave control gain
+float Kp =   .9;                                // PID proportional control Gain
+float Kd =   .5;                                // PID Derivitave control gain
 
 /* PID CODE */
 void getMotorData()  {                                                        // calculate speed, volts and Amps
@@ -101,6 +101,10 @@ void setup() {
   //Switch Pin Setup
   pinMode(sw1Input, INPUT);
   pinMode(sw2Input, INPUT);
+
+  pinMode(dcMotorEn, OUTPUT);
+
+  for(int i=0; i<NUMREADINGS; i++)   readings[i] = 0;  // initialize readings to 0
 
 }
 
@@ -176,8 +180,9 @@ void updateDCVel(float vel){
 }
 
 void loop() {
-  outputAllValuesForUI();
-  guiMode();
+  //outputAllValuesForUI();
+  //guiMode();
+  
   if (sensorMode){
     readSwitch(&sw1, &sw2);
     if ((sw1 == 0) && (sw2 == 0)) {
@@ -185,6 +190,18 @@ void loop() {
     } 
     else if ((sw1 == 0) && (sw2 == 1)) {
       readIRSensor();
+      digitalWrite(dcMotorIn1, HIGH);
+      digitalWrite(dcMotorIn2, LOW);
+
+      //speed_req = 100;
+      
+      if((millis()-lastMilli) >= LOOPTIME)   {                                    // enter tmed loop
+         lastMilli = millis();
+         getMotorData(); // calculate speed, volts and Amps
+         PWM_val = updatePid(PWM_val, speed_req, speed_act); // compute PWM value
+         Serial.println(PWM_val);
+         analogWrite(dcMotorEn, PWM_val); // send PWM to motor
+      }
     }
     else if ((sw1 == 1) && (sw2 == 0)) {
       readPotentiometerSensor();
@@ -327,12 +344,13 @@ float readUltraSoundSensor(){
     Serial.print(",");
   }*/
   if (medianDis > 20) {
-        //Serial.println("Ultrasound Reading Distance Out Of Range.");
-        //Serial.println(""); 
+        Serial.println("Ultrasound Reading Distance Out Of Range.");
+        Serial.println(""); 
   }
   else {
       float servoMotorMappedInput = map(medianDis, 0, 20, 0, 180);
       servoMotor.write(servoMotorMappedInput);
+      Serial.println(servoMotorMappedInput);
       delay(15);
   }
 
@@ -359,6 +377,9 @@ void readIRSensor(){
     Serial.print(medianDis);
     Serial.print(",");
   }*/
+  speed_req = constrain(map(int(medianDis), 0, 20, 60, 255), 0, 255);
+  // motor min 60
+  Serial.println(speed_req);
 }
 
 void readPotentiometerSensor(){
