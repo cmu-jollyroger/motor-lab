@@ -12,6 +12,7 @@ import controlP5.*; // import controlP5 library
 import processing.serial.*;
 
 
+
 ControlP5 controlP5;
 Serial myPort;
 
@@ -21,11 +22,13 @@ Textlabel myTextlabelI, myTextlabelJ, myTextlabelK, myTextlabelL, myTextlabelM; 
 
 boolean sensorMode;
 
+boolean go = false;
+
 void setup() {
  size(790,560);
  
  controlP5 = new ControlP5(this);
- String portName = Serial.list()[0];
+ String portName = Serial.list()[2];
  
  println(Serial.list()); 
 
@@ -185,18 +188,25 @@ void setup() {
                     .setFont(createFont("Georgia",15));
  
 }
+
+
  
 void draw() { 
  background(10, 20, 20); 
- 
-}
-
-void serialEvent  (Serial myPort) {
+ if (myPort.available() > 0) {
   println("SerialEvent Received");
   String update  =  myPort.readStringUntil ( '\n' );
-  
+  if (update == null) {
+    return;
+  }
   println("Update Received " + update);
-  if (update.indexOf("UltraSound:") != -1){
+  if (update.indexOf("Go111") != -1){
+    go = true;
+  }
+  else if (update.indexOf("NoGo") != -1){
+    go = false;
+  }
+  else if (update.indexOf("UltraSound:") != -1){
     String value = update.substring(update.lastIndexOf(':'));
     myTextlabelL.setText("Ultrasound Sensor Value(in inches): " + value);
   }
@@ -212,7 +222,7 @@ void serialEvent  (Serial myPort) {
     String value = update.substring(update.lastIndexOf(':'));
     myTextlabelE.setText("Servo Angle: " + value);
   }
-  else if (update.indexOf("DC:") != -1) {
+  else if (update.indexOf("StepperAngle:") != -1) {
     String value = update.substring(update.lastIndexOf(':'));
     myTextlabelC.setText("Stepper Angle: " + value);
   }
@@ -220,56 +230,55 @@ void serialEvent  (Serial myPort) {
     String value = update.substring(update.lastIndexOf(':'));
     myTextlabelG.setText("DC Angle: " + value);
   }
+ }
 } 
 
 
 void controlEvent(ControlEvent theEvent) {
- if(theEvent.isController()) { 
- 
-   print("control event from : "+theEvent.getController().getName());
-   println(", value : "+theEvent.getController().getValue());
+ if(go && theEvent.isController()) { 
+     print("control event from : "+theEvent.getController().getName());
+     println(", value : "+theEvent.getController().getValue());
    
-   if(theEvent.getController().getName()=="Sensor Mode/GUI Mode Toggle") {
-     if(theEvent.getController().getValue()==1) {
-       println("Sending Sensor Command Toggle");
-       myPort.write("Sensor Command:" + "true" + '\n');
-       sensorMode = true;
+     if(theEvent.getController().getName()=="Sensor Mode/GUI Mode Toggle") {
+       if(theEvent.getController().getValue()==1) {
+         println("Sending Sensor Command Toggle");
+         myPort.write("SenC:" + "true" + '\n');
+         sensorMode = true;
+       }
+       else {
+         myPort.write("SenC:" + "false" + '\n');
+         sensorMode = false;
+       }
      }
-     else {
-       myPort.write("Sensor Command:" + "false" + '\n');
-       sensorMode = false;
-     }
-   }
-   if (sensorMode == false) {
-   
-     if(theEvent.getController().getName()=="Stepper Go") {
-       String stepperInput = controlP5.get(Textfield.class,"Stepper Input").getText();
-       println("Sending Stepper Command " + stepperInput); //<>// //<>//
-
-       myPort.write("Stepper Command:" + stepperInput + '\n');
-     }
-   
-     if(theEvent.getController().getName()=="Servo Go") { //<>// //<>//
-       float servoInput = controlP5.get(Slider.class,"RC Motor Angle").getValue();
-       println("About to send Servo Command " + servoInput);
-       myPort.write("Servo Command:" + servoInput + '\n');
-       println("Sent Servo Command");
-     }
-   
-     if(theEvent.getController().getName()=="DC Angle Go") {
-       String dcAngleInput = controlP5.get(Textfield.class,"DC Angle").getText();
-       println("Sending DC Angle Command " + dcAngleInput);
-
-       myPort.write("DCAngle Command:" + dcAngleInput + '\n');
-     }
+     if (sensorMode == false) {
+       if(theEvent.getController().getName()=="Stepper Go") {
+         String stepperInput = controlP5.get(Textfield.class,"Stepper Input").getText();
+         println("Sending Stepper Command " + stepperInput); //<>// //<>//
+  
+         myPort.write("SC:" + stepperInput + '\n');
+       }
      
-     if(theEvent.getController().getName()=="DC Vel Go") {
-       String dcVelocityInput = controlP5.get(Textfield.class,"DC Velocity").getText();
-       println("Sending DC Vel Command " + dcVelocityInput);
-
-       myPort.write("DCVelocity Command:" + dcVelocityInput + '\n');
+       if(theEvent.getController().getName()=="Servo Go") { //<>// //<>//
+         float servoInput = controlP5.get(Slider.class,"RC Motor Angle").getValue();
+         println("About to send Servo Command " + servoInput);
+         myPort.write("SerC:" + servoInput + '\n');
+         println("Sent Servo Command");
+       }
+     
+       if(theEvent.getController().getName()=="DC Angle Go") {
+         String dcAngleInput = controlP5.get(Textfield.class,"DC Angle").getText();
+         println("Sending DC Angle Command " + dcAngleInput);
+  
+         myPort.write("DCAC:" + dcAngleInput + '\n');
+       }
+       
+       if(theEvent.getController().getName()=="DC Vel Go") {
+         String dcVelocityInput = controlP5.get(Textfield.class,"DC Velocity").getText();
+         println("Sending DC Vel Command " + dcVelocityInput);
+  
+         myPort.write("DCVC:" + dcVelocityInput + '\n');
+       }
      }
-   }
+   
  }
- 
 }
